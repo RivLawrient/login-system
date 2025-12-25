@@ -4,3 +4,7 @@ type ResponseWeb[T any] struct {
 	Message string `json:"message"`
 	Data    T      `json:"data,omitempty"`
 }
+
+type RegisterRes struct {
+	Email string `json:"email"`
+}

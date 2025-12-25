@@ -11,10 +11,12 @@ func main() {
 	config.LoadEnv()
 	db := config.GetConnection()
 	app := config.NewGin()
+	validate := config.NewValidator()
 
 	internal.Apps(&internal.AppsConfig{
-		DB:  db,
-		App: app,
+		DB:       db,
+		App:      app,
+		Validate: validate,
 	})
 
 	port := os.Getenv("BE_PORT")

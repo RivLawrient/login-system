@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/RivLawrient/login-system/backend/internal/apps/domain/entity"
+	"github.com/RivLawrient/login-system/backend/internal/errs"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -55,6 +56,6 @@ func TestUserRepo_Create_DuplicateEmail(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = repo.Create(tx, ctx, user2)
-	t.Log(err)
 	assert.Error(t, err)
+	assert.EqualError(t, err, errs.ErrEmailUsed.Error())
 }

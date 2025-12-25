@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/RivLawrient/login-system/backend/internal/apps/domain/entity"
+	"github.com/RivLawrient/login-system/backend/internal/errs"
 	"github.com/lib/pq"
 )
 
@@ -26,7 +26,7 @@ func (r *UserRepo) Create(db *sql.Tx, ctx context.Context, data *entity.User) er
 	if err != nil {
 		if pgErr, ok := err.(*pq.Error); ok {
 			if pgErr.Code == "23505" {
-				return errors.New("ups, email ini sudah terdaftar!")
+				return errs.ErrEmailUsed
 			}
 		}
 		return err
@@ -38,7 +38,7 @@ func (r *UserRepo) Create(db *sql.Tx, ctx context.Context, data *entity.User) er
 	}
 
 	if rows == 0 {
-		return errors.New("user not created")
+		return errs.ErrFailedCreateData
 	}
 
 	return err

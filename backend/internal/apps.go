@@ -3,6 +3,8 @@ package internal
 import (
 	"database/sql"
 
+	"github.com/RivLawrient/login-system/backend/internal/apps/domain/repository"
+	"github.com/RivLawrient/login-system/backend/internal/apps/feature/auth"
 	"github.com/RivLawrient/login-system/backend/internal/route"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -15,6 +17,13 @@ type AppsConfig struct {
 }
 
 func Apps(a *AppsConfig) {
+	userRepo := repository.NewUserRepo()
 
-	route.Routes{App: a.App}.SetupRouts()
+	authServ := auth.NewService(a.DB, userRepo)
+	authHand := auth.NewHandler(authServ, a.Validate)
+
+	route.Routes{
+		App:         a.App,
+		AuthHandler: authHand,
+	}.SetupRouts()
 }
