@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/RivLawrient/login-system/backend/internal/apps/domain/entity"
 	"github.com/RivLawrient/login-system/backend/internal/errs"
@@ -16,13 +17,13 @@ func NewUserRepo() *UserRepo {
 	return &UserRepo{}
 }
 
-func (r *UserRepo) Create(db *sql.Tx, ctx context.Context, data *entity.User) error {
+func (r *UserRepo) Create(db *sql.Tx, ctx context.Context, user *entity.User) error {
 	query := `
 		INSERT INTO users(id, email, password) 
 		VALUES($1, $2, $3)
 	`
 
-	result, err := db.ExecContext(ctx, query, data.ID, data.Email, data.Password)
+	result, err := db.ExecContext(ctx, query, user.ID, user.Email, user.Password)
 	if err != nil {
 		if pgErr, ok := err.(*pq.Error); ok {
 			if pgErr.Code == "23505" {
@@ -42,4 +43,48 @@ func (r *UserRepo) Create(db *sql.Tx, ctx context.Context, data *entity.User) er
 	}
 
 	return err
+}
+
+func (r *UserRepo) GetByID(db *sql.Tx, ctx context.Context, id string, user *entity.User) error {
+	query := `
+		SELECT id, email, password FROM users WHERE id = $1
+	`
+	result := db.QueryRowContext(ctx, query, id)
+	if err := result.Err(); err != nil {
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code == "22P02" {
+				return errs.ErrInvalidType
+			}
+		}
+
+		return err
+	}
+
+	if err := result.Scan(&user.ID, &user.Email, &user.Password); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.ErrDataNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepo) GetByEmail(db *sql.Tx, ctx context.Context, email string, user *entity.User) error {
+	query := `
+		SELECT id, email, password FROM users WHERE email = $1
+	`
+	result := db.QueryRowContext(ctx, query, email)
+	if err := result.Err(); err != nil {
+		return err
+	}
+
+	if err := result.Scan(&user.ID, &user.Email, &user.Password); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.ErrDataNotFound
+		}
+		return err
+	}
+
+	return nil
 }

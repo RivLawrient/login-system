@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/RivLawrient/login-system/backend/internal/apps/domain/entity"
 	"github.com/RivLawrient/login-system/backend/internal/apps/domain/repository"
+	"github.com/RivLawrient/login-system/backend/internal/errs"
 	"github.com/RivLawrient/login-system/backend/internal/helper"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -74,15 +76,38 @@ func (s *Service) Login(ctx context.Context, email, password string) (*entity.Us
 	tx, _ := s.DB.Begin()
 	defer tx.Rollback()
 
-	//code
-	//get user
-	//compare password
-	//genereate jwt
-	//genereate refresh
+	user := entity.User{}
+	if err := s.UserRepo.GetByEmail(tx, ctx, email, &user); err != nil {
+		if errors.Is(err, errs.ErrDataNotFound) {
+			return nil, nil, nil, errs.ErrInvalidEmailPassword
+		}
+		return nil, nil, nil, err
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, nil, nil, errs.ErrInvalidEmailPassword
+	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, nil, nil, err
 	}
 
-	return nil, nil, nil, nil
+	jwt, err := helper.GenerateJWT(user.ID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	refreshToken := uuid.NewString()
+	key := "refresh_token:" + refreshToken
+	if err := s.Redis.Set(
+		ctx,
+		key,
+		user.ID,
+		7*24*time.Hour,
+	).Err(); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return &user, &jwt, &refreshToken, nil
 }
