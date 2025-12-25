@@ -24,4 +24,5 @@ func (r Routes) SetupRouts() {
 	})
 
 	r.App.POST("/auth/register", r.AuthHandler.RegisterHandler)
+	r.App.POST("/auth/login", r.AuthHandler.LoginHandler)
 }

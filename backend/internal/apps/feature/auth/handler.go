@@ -55,7 +55,49 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 	c.SetCookie("refresh_token", *refreshToken, 0, "/", "", false, false)
 
 	c.JSON(200, dto.ResponseWeb[dto.RegisterRes]{
-		Message: "success",
+		Message: "success register",
+		Data: dto.RegisterRes{
+			Email:       res.Email,
+			AccessToken: *accessToken,
+		},
+	})
+}
+
+func (h *Handler) LoginHandler(c *gin.Context) {
+	req := dto.LoginReq{}
+	c.ShouldBindJSON(&req)
+
+	if err := h.Validate.Struct(req); err != nil {
+		c.JSON(400, dto.ResponseWeb[map[string]string]{
+			Message: "validation failed",
+			Data:    helper.ValidationMsg(err),
+		})
+		return
+	}
+
+	res, accessToken, refreshToken, err := h.Service.Login(c, req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, errs.ErrInvalidEmailPassword) {
+			c.JSON(400, dto.ResponseWeb[map[string]any]{
+				Message: "validation failed",
+				Data: gin.H{
+					"email":    err.Error(),
+					"password": err.Error(),
+				},
+			})
+			return
+		}
+
+		c.JSON(500, dto.ResponseWeb[any]{
+			Message: errs.ErrInternal.Error(),
+		})
+		return
+	}
+
+	c.SetCookie("refresh_token", *refreshToken, 0, "/", "", false, false)
+
+	c.JSON(200, dto.ResponseWeb[dto.RegisterRes]{
+		Message: "success login",
 		Data: dto.RegisterRes{
 			Email:       res.Email,
 			AccessToken: *accessToken,
