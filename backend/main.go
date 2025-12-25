@@ -12,11 +12,13 @@ func main() {
 	db := config.GetConnection()
 	app := config.NewGin()
 	validate := config.NewValidator()
+	redis := config.NewAccess()
 
 	internal.Apps(&internal.AppsConfig{
 		DB:       db,
 		App:      app,
 		Validate: validate,
+		Redis:    redis,
 	})
 
 	port := os.Getenv("BE_PORT")

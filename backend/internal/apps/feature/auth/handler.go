@@ -34,7 +34,7 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.Register(c, req.Email, req.Password)
+	res, accessToken, refreshToken, err := h.Service.Register(c, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, errs.ErrEmailUsed) {
 			c.JSON(400, dto.ResponseWeb[map[string]any]{
@@ -46,16 +46,19 @@ func (h *Handler) RegisterHandler(c *gin.Context) {
 			return
 		}
 
-		c.JSON(400, dto.ResponseWeb[any]{
+		c.JSON(500, dto.ResponseWeb[any]{
 			Message: errs.ErrInternal.Error(),
 		})
 		return
 	}
 
+	c.SetCookie("refresh_token", *refreshToken, 0, "/", "", false, false)
+
 	c.JSON(200, dto.ResponseWeb[dto.RegisterRes]{
 		Message: "success",
 		Data: dto.RegisterRes{
-			Email: res.Email,
+			Email:       res.Email,
+			AccessToken: *accessToken,
 		},
 	})
 }

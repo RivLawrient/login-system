@@ -6,5 +6,6 @@ type ResponseWeb[T any] struct {
 }
 
 type RegisterRes struct {
-	Email string `json:"email"`
+	Email       string `json:"email"`
+	AccessToken string `json:"access_token"`
 }
