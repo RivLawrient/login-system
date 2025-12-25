@@ -111,3 +111,48 @@ func (s *Service) Login(ctx context.Context, email, password string) (*entity.Us
 
 	return &user, &jwt, &refreshToken, nil
 }
+
+func (s *Service) RefreshAccessToken(ctx context.Context, refreshToken string) (*string, *string, error) {
+	key := "refresh_token:" + refreshToken
+	userID, err := s.Redis.Get(ctx, key).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, nil, errs.ErrInvalidRefreshToken
+		}
+		return nil, nil, err
+	}
+
+	// generate new access token
+	accessToken, err := helper.GenerateJWT(userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// rotate refresh token
+	newRefresh := uuid.NewString()
+	newKey := "refresh_token:" + newRefresh
+	if err := s.Redis.Set(ctx, newKey, userID, 7*24*time.Hour).Err(); err != nil {
+		return nil, nil, err
+	}
+
+	// delete old token (best-effort)
+	_ = s.Redis.Del(ctx, key).Err()
+
+	return &accessToken, &newRefresh, nil
+}
+
+func (s *Service) Me(ctx context.Context, userID string) (*entity.User, error) {
+	tx, _ := s.DB.Begin()
+	defer tx.Rollback()
+
+	var user entity.User
+	if err := s.UserRepo.GetByID(tx, ctx, userID, &user); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

@@ -104,3 +104,75 @@ func (h *Handler) LoginHandler(c *gin.Context) {
 		},
 	})
 }
+
+func (h *Handler) RefreshHandler(c *gin.Context) {
+	token, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(401, dto.ResponseWeb[any]{
+			Message: errs.ErrInvalidRefreshToken.Error(),
+		})
+		return
+	}
+
+	accessToken, newRefresh, err := h.Service.RefreshAccessToken(c, token)
+	if err != nil {
+		if errors.Is(err, errs.ErrInvalidRefreshToken) {
+			c.JSON(401, dto.ResponseWeb[any]{
+				Message: errs.ErrInvalidRefreshToken.Error(),
+			})
+			return
+		}
+
+		c.JSON(500, dto.ResponseWeb[any]{
+			Message: errs.ErrInternal.Error(),
+		})
+		return
+	}
+
+	// set new refresh cookie
+	c.SetCookie("refresh_token", *newRefresh, 0, "/", "", false, false)
+
+	c.JSON(200, dto.ResponseWeb[dto.RefreshRes]{
+		Message: "success refresh",
+		Data: dto.RefreshRes{
+			AccessToken: *accessToken,
+		},
+	})
+}
+
+func (h *Handler) MeHandler(c *gin.Context) {
+	uid, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, dto.ResponseWeb[any]{
+			Message: errs.ErrInvalidAccessToken.Error(),
+		})
+		return
+	}
+
+	idStr, ok := uid.(string)
+	if !ok {
+		c.JSON(401, dto.ResponseWeb[any]{
+			Message: errs.ErrInvalidAccessToken.Error(),
+		})
+		return
+	}
+
+	user, err := h.Service.Me(c, idStr)
+	if err != nil {
+		if errors.Is(err, errs.ErrDataNotFound) {
+			c.JSON(404, dto.ResponseWeb[any]{
+				Message: errs.ErrDataNotFound.Error(),
+			})
+			return
+		}
+		c.JSON(500, dto.ResponseWeb[any]{
+			Message: errs.ErrInternal.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, dto.ResponseWeb[dto.MeRes]{
+		Message: "success get user",
+		Data:    dto.MeRes{ID: user.ID, Email: user.Email},
+	})
+}

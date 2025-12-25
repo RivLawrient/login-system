@@ -9,4 +9,6 @@ var (
 	ErrInvalidType          = errors.New("invalid type")
 	ErrDataNotFound         = errors.New("data is not found")
 	ErrInvalidEmailPassword = errors.New("email or password is invalid")
+	ErrInvalidRefreshToken  = errors.New("invalid refresh token")
+	ErrInvalidAccessToken   = errors.New("invalid access token")
 )

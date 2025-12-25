@@ -5,6 +5,7 @@ import (
 
 	"github.com/RivLawrient/login-system/backend/internal/apps/feature/auth"
 	"github.com/RivLawrient/login-system/backend/internal/dto"
+	"github.com/RivLawrient/login-system/backend/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -25,4 +26,6 @@ func (r Routes) SetupRouts() {
 
 	r.App.POST("/auth/register", r.AuthHandler.RegisterHandler)
 	r.App.POST("/auth/login", r.AuthHandler.LoginHandler)
+	r.App.POST("/auth/refresh", r.AuthHandler.RefreshHandler)
+	r.App.GET("/auth/me", middleware.Authorization(), r.AuthHandler.MeHandler)
 }
